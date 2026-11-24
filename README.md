@@ -158,7 +158,7 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
 1. **Allow the new port in OCI Cloud Networking first:**
    - In the **Oracle Cloud Console**, go to **Networking → Virtual Cloud Networks → Your VCN → Subnet → Security Lists** (or your instance's **Network Security Group**).
    - Add a stateful **Ingress Rule** for `TCP` destination port `2525` from your IP (or `0.0.0.0/0`).
-2. **Allow the new port in your host firewall**:
+2. **Allow the new port in your host firewall:**
    ```bash
    sudo iptables -I INPUT -p tcp --dport 2525 -j ACCEPT
    sudo netfilter-persistent save
@@ -171,7 +171,25 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
    ```bash
    sudo sshd -t && sudo systemctl restart ssh
    ```
-5. **Test connecting on port `2525`** in a new PuTTY session before removing port `22` from your firewall rules.
+5. **Switch the Active Listener to Port 2525:**
+   ```bash
+   sudo systemctl disable --now ssh.socket
+   sudo systemctl daemon-reload
+   sudo systemctl restart ssh.service
+   ```
+6. **Confirm port 2525 is now listening and port 22 is released:**
+   ```bash
+   sudo ss -tlnp | grep -E ':(2525|22)\b'
+   ```
+   > **Note:** You see 0.0.0.0:2525 and [::]:2525 in LISTEN state for sshd, with no LISTEN lines on port 22.
+7. **Test connecting on port `2525`** in a new PuTTY session before removing port `22` from your firewall rules.
+8. If everything works, you can delete the firewall rule for port `22` safely:
+   ```bash
+   sudo iptables -L INPUT -v -n --line-numbers | grep -E "dpt:22\b"
+   ```
+9. **Delete the old port `22` in OCI Cloud Networking:**
+   - In the **Oracle Cloud Console**, go to **Networking → Virtual Cloud Networks → Your VCN → Subnet → Security Lists** (or your instance's **Network Security Group**).
+   - Delete the stateful **Ingress Rule** for `TCP` destination port `22` from your IP (or `0.0.0.0/0`).
 
 ---
 
