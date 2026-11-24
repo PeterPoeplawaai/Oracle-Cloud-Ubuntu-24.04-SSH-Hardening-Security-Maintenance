@@ -190,6 +190,13 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
 9. **Delete the old port `22` in OCI Cloud Networking:**
    - In the **Oracle Cloud Console**, go to **Networking → Virtual Cloud Networks → Your VCN → Subnet → Security Lists** (or your instance's **Network Security Group**).
    - Delete the stateful **Ingress Rule** for `TCP` destination port `22` from your IP (or `0.0.0.0/0`).
+  
+> [!TIP]
+> Install [Defensia](https://defensia.cloud/) to see your real-time security hardening score. After following these steps your score should look like:
+<p align="left">
+  <img src="defensia_result.png" alt="Banner" width="1000" />
+</p>
+
 
 ---
 
