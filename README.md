@@ -153,25 +153,25 @@ EOF
 
 ## 7. Optional: Change the Default SSH Port
 
-Changing port `22` is optional when key-based authentication is enforced, as it primarily reduces automated scanner noise. If you choose to change it (e.g., to port `2222`):
+Changing port `22` is optional when key-based authentication is enforced, as it primarily reduces automated scanner noise. If you choose to change it (e.g., to port `2525`):
 
 1. **Allow the new port in OCI Cloud Networking first:**
    - In the **Oracle Cloud Console**, go to **Networking → Virtual Cloud Networks → Your VCN → Subnet → Security Lists** (or your instance's **Network Security Group**).
-   - Add a stateful **Ingress Rule** for `TCP` destination port `2222` from your IP (or `0.0.0.0/0`).
+   - Add a stateful **Ingress Rule** for `TCP` destination port `2525` from your IP (or `0.0.0.0/0`).
 2. **Allow the new port in your host firewall**:
    ```bash
-   sudo iptables -I INPUT -p udp --dport 2222 -j ACCEPT
+   sudo iptables -I INPUT -p udp --dport 2525 -j ACCEPT
    sudo netfilter-persistent save
    ```
 3. **Update `/etc/ssh/sshd_config.d/99-hardening.conf`** by adding:
    ```text
-   Port 2222
+   Port 2525
    ```
 4. **Validate and restart SSH:**
    ```bash
    sudo sshd -t && sudo systemctl restart ssh
    ```
-5. **Test connecting on port `2222`** in a new PuTTY session before removing port `22` from your firewall rules.
+5. **Test connecting on port `2525`** in a new PuTTY session before removing port `22` from your firewall rules.
 
 ---
 
