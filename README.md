@@ -107,13 +107,16 @@ ls -l /etc/ssh/sshd_config
 Ubuntu 24.04 loads drop-in files from `/etc/ssh/sshd_config.d/*.conf`. Create `/etc/ssh/sshd_config.d/99-hardening.conf`:
 
 ```bash
-sudo tee /etc/ssh/sshd_config.d/99-hardening.conf > /dev/null <<'EOF'
+sudo nano /etc/ssh/sshd_config.d/99-hardening.conf
+```
+
+Paste underneath lines and save:
+```bash
 PermitRootLogin no
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 MaxAuthTries 3
 X11Forwarding no
-EOF
 ```
 
 > **Note:** Check `/etc/ssh/sshd_config` and earlier files in `/etc/ssh/sshd_config.d/` (such as `50-cloud-init.conf`) to make sure no conflicting `PasswordAuthentication yes` or `PermitRootLogin yes` directive overrides your settings.
