@@ -158,9 +158,10 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
 1. **Allow the new port in OCI Cloud Networking first:**
    - In the **Oracle Cloud Console**, go to **Networking → Virtual Cloud Networks → Your VCN → Subnet → Security Lists** (or your instance's **Network Security Group**).
    - Add a stateful **Ingress Rule** for `TCP` destination port `2222` from your IP (or `0.0.0.0/0`).
-2. **Allow the new port in your host firewall** (if using `ufw` or `iptables`):
+2. **Allow the new port in your host firewall**:
    ```bash
-   sudo ufw allow 2222/tcp
+   sudo iptables -I INPUT -p udp --dport 2222 -j ACCEPT
+   sudo netfilter-persistent save
    ```
 3. **Update `/etc/ssh/sshd_config.d/99-hardening.conf`** by adding:
    ```text
