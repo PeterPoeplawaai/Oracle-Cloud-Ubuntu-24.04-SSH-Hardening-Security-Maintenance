@@ -1,3 +1,7 @@
+<p align="left">
+  <img src="banner_ubuntu_hardening.png" alt="Banner" width="1000" />
+</p>
+
 # Oracle Cloud Ubuntu 24.04 — SSH Hardening & Security Maintenance
 
 A step-by-step reference guide for resolving common SSH and system security audit findings on an **Oracle Cloud Infrastructure (OCI) Free Tier Ubuntu 24.04** instance without locking yourself out.
