@@ -192,7 +192,8 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
 7. **Test connecting on port `2525`** in a new PuTTY session before removing port `22` from your firewall rules.
 8. If everything works, you can delete the firewall rule for port `22` safely:
    ```bash
-   sudo iptables -L INPUT -v -n --line-numbers | grep -E "dpt:22\b"
+   sudo iptables -D INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
+   sudo netfilter-persistent save
    ```
 9. **Delete the old port `22` in OCI Cloud Networking:**
    - In the **Oracle Cloud Console**, go to **Networking → Virtual Cloud Networks → Your VCN → Subnet → Security Lists** (or your instance's **Network Security Group**).
