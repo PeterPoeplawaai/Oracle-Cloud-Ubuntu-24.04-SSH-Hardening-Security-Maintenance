@@ -247,6 +247,12 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
 > ssh-audit -p 2525 127.0.0.1
 > ```
 > **Verification:** Lynis prints `OK` for the `SSH-7408` checks resolved from `99-hardening.conf`, and `ssh-audit` tests your live listener on port `2525` against its built-in Ubuntu 24.04 policy.
+>
+> Your Lynis results should look like this:
+>
+> <p align="left">
+  <img src="lynis_result.png" alt="Lynis hardening scan results on Ubuntu 24.04" width="600" />
+</p>
 
 ---
 
