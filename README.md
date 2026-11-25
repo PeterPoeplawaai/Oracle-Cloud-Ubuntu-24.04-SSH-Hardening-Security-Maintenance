@@ -166,6 +166,9 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
    sudo iptables -I INPUT 1 -p tcp -m state --state NEW --dport 2525 -j ACCEPT
    sudo netfilter-persistent save
    ```
+   > [!NOTE]
+   > The firewall rule use `-I INPUT`, which inserts the rule at the top of the chain, so it always ends up above the REJECT rule of the Oracle Ubuntu image. Check the result at any time with: `sudo iptables -L INPUT -v -n --line-numbers`
+
 3. **Update `/etc/ssh/sshd_config.d/99-hardening.conf`** by adding:
    ```text
    Port 2525
