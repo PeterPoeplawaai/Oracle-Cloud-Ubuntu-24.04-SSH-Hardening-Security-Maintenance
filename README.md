@@ -163,7 +163,7 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
    - Add a stateful **Ingress Rule** for `TCP` destination port `2525` from your IP (or `0.0.0.0/0`).
 2. **Allow the new port in your host firewall:**
    ```bash
-   sudo iptables -I INPUT -p tcp --dport 2525 -j ACCEPT
+   sudo iptables -I INPUT 1 -p tcp -m state --state NEW --dport 2525 -j ACCEPT
    sudo netfilter-persistent save
    ```
 3. **Update `/etc/ssh/sshd_config.d/99-hardening.conf`** by adding:
