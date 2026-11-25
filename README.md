@@ -202,8 +202,10 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
 > [!TIP]
 > Check the current state of your hardening with Lynis and ssh-audit:
 > ```bash
-> sudo apt update && sudo apt install -y lynis ssh-audit
-> sudo lynis audit system --tests-from-group ssh
+> sudo apt update && sudo apt install -y git ssh-audit
+> sudo git clone https://github.com/CISOfy/lynis.git /usr/local/lynis
+> sudo chown -R root:root /usr/local/lynis
+> sudo /usr/local/lynis/lynis audit system --tests-from-group ssh
 > ssh-audit -p 2525 127.0.0.1
 >```
 > Verification: lynis prints OK for PermitRootLogin, PasswordAuthentication, and MaxAuthTries resolved from 99-hardening.conf, and ssh-audit tests your live listener on port 2525 against its built-in Ubuntu 24.04 policy.
