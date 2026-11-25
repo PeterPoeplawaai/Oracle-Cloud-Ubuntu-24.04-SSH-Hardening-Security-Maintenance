@@ -200,10 +200,13 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
    - Delete the stateful **Ingress Rule** for `TCP` destination port `22` from your IP (or `0.0.0.0/0`).
   
 > [!TIP]
-> Install [Defensia](https://defensia.cloud/) to see your real-time security hardening score. After following these steps your score should look like:
-<p align="left">
-  <img src="defensia_result.png" alt="Banner" width="1000" />
-</p>
+> Check the current state of your hardening with Lynis:
+> ```bash
+> sudo apt update && sudo apt install -y lynis ssh-audit
+> sudo lynis audit system --tests-from-group ssh
+> ssh-audit -p 2525 127.0.0.1
+>```
+> Verification: lynis prints OK for PermitRootLogin, PasswordAuthentication, and MaxAuthTries resolved from 99-hardening.conf, and ssh-audit tests your live listener on port 2525 against its built-in Ubuntu 24.04 policy.
 
 
 ---
