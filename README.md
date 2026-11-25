@@ -178,6 +178,7 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
    ```bash
    sudo systemctl disable --now ssh.socket
    sudo systemctl daemon-reload
+   sudo systemctl enable ssh.service
    sudo systemctl restart ssh.service
    ```
 6. **Confirm port 2525 is now listening and port 22 is released:**
