@@ -200,7 +200,7 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
    - Delete the stateful **Ingress Rule** for `TCP` destination port `22` from your IP (or `0.0.0.0/0`).
   
 > [!TIP]
-> Check the current state of your hardening with Lynis:
+> Check the current state of your hardening with Lynis and ssh-audit:
 > ```bash
 > sudo apt update && sudo apt install -y lynis ssh-audit
 > sudo lynis audit system --tests-from-group ssh
