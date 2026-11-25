@@ -31,6 +31,11 @@ A step-by-step reference guide for resolving common SSH and system security audi
 | **HIGH** | Pending security updates | Run `apt update && apt upgrade -y` |
 | **MEDIUM** | High SSH max auth tries | Set `MaxAuthTries 3` |
 | **LOW** | SSH X11 forwarding enabled | Set `X11Forwarding no` |
+| **LOW** | SSH TCP port forwarding enabled (`SSH-7408`) | Set `AllowTcpForwarding no` |
+| **LOW** | SSH agent forwarding enabled (`SSH-7408`) | Set `AllowAgentForwarding no` |
+| **LOW** | High concurrent multiplexed SSH sessions (`SSH-7408`) | Set `MaxSessions 2` |
+| **LOW** | Unencrypted TCP keepalives & high idle retries (`SSH-7408`) | Set `TCPKeepAlive no`, `ClientAliveInterval 300`, & `ClientAliveCountMax 2` |
+| **LOW** | Minimal SSH authentication logging (`SSH-7408`) | Set `LogLevel VERBOSE` |
 | **LOW** | SSH listening on default port `22` | *(Optional)* Move SSH to a custom port after updating OCI & host firewalls |
 
 ---
@@ -103,23 +108,49 @@ ls -l /etc/ssh/sshd_config
 # Expected: -rw------- 1 root root ... /etc/ssh/sshd_config
 ```
 
-### 5.2 Add a Hardening Drop-In Configuration
-Ubuntu 24.04 loads drop-in files from `/etc/ssh/sshd_config.d/*.conf`. Create `/etc/ssh/sshd_config.d/99-hardening.conf`:
+### 5.2 Check for Conflicting Drop-In Overrides
+Ubuntu 24.04 includes `/etc/ssh/sshd_config.d/*.conf` in lexical order and applies **first-match-wins** semantics. Before creating your hardening file, confirm that neither `/etc/ssh/sshd_config` nor an earlier drop-in (such as `50-cloud-init.conf`) already sets these directives:
+
+```bash
+sudo grep -rnE '^(PermitRootLogin|PasswordAuthentication|KbdInteractiveAuthentication|MaxAuthTries|X11Forwarding|AllowTcpForwarding|AllowAgentForwarding|MaxSessions|TCPKeepAlive|ClientAliveInterval|ClientAliveCountMax|LogLevel)\b' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/
+```
+
+### 5.3 Add a Hardening Drop-In Configuration
+Create or update `/etc/ssh/sshd_config.d/99-hardening.conf`:
 
 ```bash
 sudo nano /etc/ssh/sshd_config.d/99-hardening.conf
 ```
 
-Paste underneath lines and save:
+Paste the following hardened directives and save:
+
 ```bash
+# Authentication & Access Control
 PermitRootLogin no
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 MaxAuthTries 3
+MaxSessions 2
+
+# Forwarding & Tunneling Restrictions
 X11Forwarding no
+AllowTcpForwarding no
+AllowAgentForwarding no
+
+# Session Keepalive & Idle Timeout
+TCPKeepAlive no
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# Detailed Key Fingerprint Logging
+LogLevel VERBOSE
 ```
 
-> **Note:** Check `/etc/ssh/sshd_config` and earlier files in `/etc/ssh/sshd_config.d/` (such as `50-cloud-init.conf`) to make sure no conflicting `PasswordAuthentication yes` or `PermitRootLogin yes` directive overrides your settings.
+#### What Each Hardening Group Does
+- **Access & Session Limits (`MaxAuthTries 3`, `MaxSessions 2`):** Caps failed authentication attempts per connection and limits multiplexed channels per TCP connection to 2 (enough for a shell plus an SFTP/second channel).
+- **Forwarding Restrictions (`AllowTcpForwarding no`, `AllowAgentForwarding no`, `X11Forwarding no`):** Prevents attackers or compromised sessions from pivoting through SSH tunnels (`-L`/`-R`/`-D`) or hijacking a forwarded SSH agent socket. *(Note: Keep `AllowTcpForwarding yes` or scope it via `Match User` if you rely on SSH port forwarding instead of a VPN.)*
+- **Encrypted Session Keepalives (`TCPKeepAlive no`, `ClientAliveInterval 300`, `ClientAliveCountMax 2`):** Disables spoofable TCP-level keepalives and uses encrypted SSH-channel probes every 300 seconds, disconnecting unresponsive sessions after 2 missed checks (`600` seconds total).
+- **Audit Logging (`LogLevel VERBOSE`):** Logs the exact SSH public key fingerprint used for each login in `/var/log/auth.log`.
 
 ---
 
@@ -133,7 +164,7 @@ X11Forwarding no
 
 2. **Verify the effective runtime configuration:**
    ```bash
-   sudo sshd -T | grep -E "permitrootlogin|passwordauthentication|kbdinteractiveauthentication|maxauthtries|x11forwarding"
+   sudo sshd -T | grep -E "^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication|maxauthtries|maxsessions|x11forwarding|allowtcpforwarding|allowagentforwarding|tcpkeepalive|clientaliveinterval|clientalivecountmax|loglevel)\b"
    ```
    Expected values:
    ```text
@@ -141,7 +172,14 @@ X11Forwarding no
    passwordauthentication no
    kbdinteractiveauthentication no
    maxauthtries 3
+   maxsessions 2
    x11forwarding no
+   allowtcpforwarding no
+   allowagentforwarding no
+   tcpkeepalive no
+   clientaliveinterval 300
+   clientalivecountmax 2
+   loglevel VERBOSE
    ```
 
 3. **Restart the SSH daemon:**
@@ -167,7 +205,7 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
    sudo netfilter-persistent save
    ```
    > [!NOTE]
-   > The firewall rule use `-I INPUT`, which inserts the rule at the top of the chain, so it always ends up above the REJECT rule of the Oracle Ubuntu image. Check the result at any time with: `sudo iptables -L INPUT -v -n --line-numbers`
+   > The firewall rule uses `-I INPUT 1`, which inserts the rule at the top of the chain, so it always ends up above the REJECT rule of the Oracle Ubuntu image. Check the result at any time with: `sudo iptables -L INPUT -v -n --line-numbers`
 
 3. **Update `/etc/ssh/sshd_config.d/99-hardening.conf`** by adding:
    ```text
@@ -188,7 +226,7 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
    ```bash
    sudo ss -tlnp | grep -E ':(2525|22)\b'
    ```
-   > **Note:** You see 0.0.0.0:2525 and [::]:2525 in LISTEN state for sshd, with no LISTEN lines on port 22.
+   > **Note:** You should see `0.0.0.0:2525` and `[::]:2525` in `LISTEN` state for `sshd`, with no `LISTEN` lines on port `22`.
 7. **Test connecting on port `2525`** in a new PuTTY session before removing port `22` from your firewall rules.
 8. If everything works, you can delete the firewall rule for port `22` safely:
    ```bash
@@ -198,18 +236,17 @@ Changing port `22` is optional when key-based authentication is enforced, as it 
 9. **Delete the old port `22` in OCI Cloud Networking:**
    - In the **Oracle Cloud Console**, go to **Networking → Virtual Cloud Networks → Your VCN → Subnet → Security Lists** (or your instance's **Network Security Group**).
    - Delete the stateful **Ingress Rule** for `TCP` destination port `22` from your IP (or `0.0.0.0/0`).
-  
+
 > [!TIP]
-> Check the current state of your hardening with Lynis and ssh-audit:
+> Check the current state of your hardening with Lynis and `ssh-audit`:
 > ```bash
 > sudo apt update && sudo apt install -y git ssh-audit
 > sudo git clone https://github.com/CISOfy/lynis.git /usr/local/lynis
 > sudo chown -R root:root /usr/local/lynis
 > sudo /usr/local/lynis/lynis audit system --tests-from-group ssh
 > ssh-audit -p 2525 127.0.0.1
->```
-> Verification: lynis prints OK for PermitRootLogin, PasswordAuthentication, and MaxAuthTries resolved from 99-hardening.conf, and ssh-audit tests your live listener on port 2525 against its built-in Ubuntu 24.04 policy.
-
+> ```
+> **Verification:** Lynis prints `OK` for the `SSH-7408` checks resolved from `99-hardening.conf`, and `ssh-audit` tests your live listener on port `2525` against its built-in Ubuntu 24.04 policy.
 
 ---
 
